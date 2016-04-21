@@ -1,0 +1,73 @@
+\documentclass[fleqn, 14pt]{extarticlej}
+\oddsidemargin=-1cm
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{indentfirst}
+\textwidth=18cm
+\textheight=23cm
+\topmargin=0cm
+\headheight=1cm
+\headsep=0cm
+\footskip=1cm
+
+\def\labelenumi{(\theenumi)}
+\def\theenumii{\Alph{enumii}}
+\def\theenumiii{(\alph{enumiii})}
+\usepackage{comment}
+\begin{document}
+
+\begin{center}
+{\Large {\bf 平成28年度GNグループB4新人研修課題 報告書}}
+
+\end{center}
+\begin{flushright}
+2016年4月21日\\
+
+乃村研究室 石川 大夢
+\end{flushright}
+
+\section{概要}
+本資料は平成28年度GNグループB4新人研修課題の報告書である．本資料では，課題内容，
+理解できなかった部分，作成できなかった機能，自主的に作成した機能，および考察について述べる．
+
+\section{課題内容}
+課題内容は，RubyによるSlackBotプログラムの作成である．具体的には以下の2つを行う．
+\begin{enumerate}
+  \item 任意の文字列を特定のチャンネルに発言するプログラムの作成
+  \item SlackBotプログラムへの機能の追加
+\end{enumerate}
+本課題におけるRubyのバージョンは，2.1.5である．
+\section{理解できなかった部分}
+\begin{enumerate}
+\item プログラム実行時に呼び出されるファイルconfig.ruの挙動
+\item rubyのArrayクラスが持つnewメソッドの挙動
+\end{enumerate}
+
+\section{作成できなかった機能}
+作成できなかった機能を以下に示す．
+\begin{enumerate}
+\item 設定したOutgoing WebHooks以外からのPOSTを拒否する機能
+\item bar検索結果一覧ページの作成
+\end{enumerate}
+
+\section{自主的に作成した機能}
+以下の機能を自主的に作成した．
+\begin{enumerate}
+\item 住所と駅名からbarを検索し，得られたbarの情報を発言
+\end{enumerate}
+
+\section{考察}
+本課題では，WebHooksを用いたが，Slackが提供しているRealTimeMessaging API(以下 RTM)を用いてもSlackBotを作成できる．本章では，RTMを用いてSlackBotを作成する場合の利点，欠点，およびOutgoing Webhooksとの違いについて述べる．
+\begin{description}
+ 
+\item[(利点1)] ファイアウォールの内側で動作可能\\
+  Outgoing WebHooksではSlackサーバからのPOSTを受け取る必要がある．しかし，ファイアウォールの内側はファイアウォール外からアクセスできない．このため，ファイアウォール外からアクセスできるサーバ上でプログラムを動作させる必要がある．一方，RTMはWeb Socketを用いて通信を行うため，一度接続を確立させるとSlackのサーバからアクセスできないファイアウォール内でもプログラムが動作させられる．
+\item[(利点2)] 発言以外のイベントの情報を取得可能\\
+  RTMでは，発言以外のイベントに反応し，その情報を得られる．例えば，画像の投稿などがある．Outgoing WebHooksでは，指定した文字列を含む発言の投稿のみ取得可能であり，投稿された画像情報の取得はできない．RTMと顔検出を行うWebAPIを用いると，投稿された画像に写っている人の顔の情報を発言するSlackBotを作成できる．
+\item[(利点3)] Slackの発言に含まれるAttachments要素を取得可能.\\
+  Slackでは，Botの発言にAttachmentsという要素を加えられる．Attachmentsとは発言を拡張するオプションである．Outgoing WebHooksではSlackからPOSTされる情報にAttachmentsは含まれないが，RTMにより取得した発言の情報にはAttachmentsの情報が含まれている．RTMを用いれば，既存のBotの発言に含まれるAttachments情報を取得し，連携するSlackBotを作成できる．このようなSlackBotはOutgoing WebHooksでは作成できない．
+\item[(欠点1)]チャンネル内で発生する全てのイベントを取得することによる通信回数の増加\\
+  Outgoing WebHooksでは，指定した文字列を含む発言のみを取得できるが，RTMではSlackBotが存在するチャンネル内のすべてのイベントを取得する．必要としないイベントの情報を大量に取得することにより，無駄に通信回数が増加すると考える．
+\item[(欠点2)]HerokuSlackBotを常駐させると接続が切断される可能性がある．\\
+  RTMを用いて作成したSlackBotを常駐させるためにはOutgoing WebHooksで作成したSlackBotと同じくHerokuにデプロイする方法が考えられる．RTMでは一度接続を確立すると接続を維持し続ける．今回の課題で利用しているHerokuの無料プランでは，1日の動作時間に上限がある．このため，RTMを用いてBotを動作させたままにしておくと，上限を超え，接続が切断される．ただし，プライベートIPアドレスが割り振られている計算機を用意し，その上で動作させることも可能なため，この問題はそれほど大きな欠点ではないと考える．
+\end{description}
+\end{document}

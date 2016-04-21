@@ -1,3 +1,4 @@
+# coding: utf-8
 require 'json'
 require 'uri'
 require 'yaml'
@@ -9,9 +10,11 @@ class SlackBot
     # This code assumes to set incoming webhook url as evironment variable in Heroku
     # SlackBot uses settings.yml as config when it serves on local
     @incoming_webhook = ENV['INCOMING_WEBHOOK_URL'] || config["incoming_webhook_url"]
+    @suntory_bar = ENV['BAR_API_KEY'] || config["bar_api_key"]
   end
 
   def post_message(string, options = {})
+    p @incoming_webhook
     payload = options.merge({text: string})
     uri = URI.parse(@incoming_webhook)
     res = nil
@@ -27,9 +30,10 @@ class SlackBot
   end
 
   def naive_respond(params, options = {})
-    return nil if params[:user_name] == "slackbot" || params[:user_id] == "USLACKBOT"
-
-    user_name = params[:user_name] ? "@#{params[:user_name]}" : ""
-    return {text: "#{user_name} Hi!"}.merge(options).to_json
+    
+    res = {text: "#{params[:name]} #{params[:msg]}"}.merge(options).to_json
+    p res
+    return res
   end
+  
 end

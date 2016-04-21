@@ -1,0 +1,276 @@
+\documentclass[fleqn, 14pt]{extarticlej}
+\oddsidemargin=-1cm
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{indentfirst}
+\textwidth=18cm
+\textheight=23cm
+\topmargin=0cm
+\headheight=1cm
+\headsep=0cm
+\footskip=1cm
+
+\def\labelenumi{(\theenumi)}
+\def\theenumii{\Alph{enumii}}
+\def\theenumiii{(\alph{enumiii})}
+\usepackage{comment}
+\usepackage{url}
+
+\usepackage{nutils}
+\usepackage{jtygm}
+
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 表題
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+  {\Large {\bf SlackBotプログラムの仕様書}}
+
+\end{center}
+\begin{flushright}
+  2016年4月21日
+
+  乃村研究室 石川 大夢
+\end{flushright}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 概要
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{概要}
+本資料は，平成28年度GNグループB4新人研修課題のSlackBotプログラムの仕様
+についてまとめたものである．本プログラムは以下の2つの機能をもつ．
+\begin{enumerate}
+\item ``「○○○」と言って''という文字列を含む発言に反応して発言する機能
+\item 都道府県名と住所または駅名を含む発言に反応してbarを検索し，得られた検索結果を発言する機能
+\end{enumerate}
+なお，本資料において発言とは，チャットツールであるSlackの特定のチャンネル上で発言すること，または発言そのものを指す．また，本資料において，発言内容は`` ''で囲って表す．
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 対象とする利用者
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{対象とする利用者}
+本プログラムは以下のアカウントを所有する利用者を対象としている．
+\begin{enumerate}
+\item Slack アカウント
+\end{enumerate}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 機能
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{機能}
+\label{機能}
+本プログラムは，``@MoyaiBot ''という文字列から始まる発言をBotへのリクエストメッセージとし，これに返信する．また，``@MoyaiBot ''以降の内容によってBotの発言の内容が決定される．以下に本プログラムがもつ2つの機能について述べる．
+\begin{description}
+\item[(機能1)] ``「○○○」と言って''という文字列を含む発言に反応して返信する機能\\
+  ``@MoyaiBot ''という文字列の直後が``「○○○」と言って''という文字列であった場合，``○○○''と返信する．
+  
+\item[(機能2)] 都道府県名と住所または駅名を含む発言に反応してbarを検索し，得られた検索結果を発言する機能\\
+  ``都道府県名 (住所 or 駅名周辺)のbar''の形式に一致する文字列から始まる場合，指定した都道府県の住所または駅付近のbarを検索し，得られた店の情報を返信する．
+  発言に含まれる店の情報は，店名，営業時間，住所，および店内の画像である．Botは最大で10件のbarの情報を発言する．
+  また，リクエストのメッセージには都道府県の指定は必須であり，住所，駅名はどちらか一方の指定が必須である．以下にbar検索リクエストの例を示す．
+  \begin{description}
+  \item[(例1 住所指定の場合)]@MoyaiBot 岡山県 岡山市北区のbar\\
+  \item[(例2 駅名指定の場合)]@MoyaiBot 東京都 新宿駅周辺のbar\\  
+  \end{description}
+
+\end{description}
+なお，上記の(機能1)，(機能2)のどちらにも当てはまらないリクエストメッセージを受信した場合は``Hi!''という文字列を発言する．
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 動作環境
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{動作環境}
+\label{動作環境}
+本プログラムの動作環境を表\ref{tab:table1}に示す．
+
+\begin{table}[bt]
+  \begin{center}
+    \caption{動作環境}
+    \label{tab:table1}
+    \vspace{0.3cm}
+    \scalebox{1.0}{
+      \begin{tabular}{l|l}
+        \hline
+        \hline 
+        項目& 内容\\
+	    \hline
+        OS& Linux Debian GNU/Linux(version 8.1)\\
+        CPU& Intel(R) Core(TM) i5-4590 CPU (3.30GHz)\\
+        メモリ& 1.00GB\\
+        ブラウザ& FireFox バージョン 45.0.2\\
+         ソフトウェア&Ruby バージョン 2.1.5\\
+       &sinatra バージョン 1.4.7\\
+        &bundler バージョン 1.11.2\\
+        &Git バージョン 2.1.4\\
+        \hline
+      \end{tabular}
+    }
+  \end{center}
+\end{table}
+
+なお，表\ref{tab:table1}に示す動作環境での動作は確認済みである．
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 環境構築
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{環境構築}
+\label{環境構築}
+\subsection{概要}
+本プログラムを実行するために必要な環境構築の手順を以下に示す．
+\begin{enumerate}
+\item SlackアカウントのIncoming WebHooksの設定
+\item SlackアカウントのOutgoing WebHooksの設定
+\item SUNTORY BAR-NAVI WebAPIのAPIキー取得\cite{Suntory}
+\item Herokuのアカウント作成と設定
+\item Gemのインストール
+\end{enumerate}
+　次節で具体的な手順を述べる．
+\subsection{具体的な手順}
+
+
+\subsubsection{SlackアカウントのIncoming WebHooksの設定}
+\label{ss:in}
+Slackが提供しているIncoming WebHooksの設定を行う．
+Incoming WebHooksとは指定したチャンネルへのURLに発言をPOSTする機能である．
+\begin{enumerate}
+\item ブラウザを用いて，本プログラム使用者のSlack アカウントにログインする．
+\item ページ左上のチーム名をクリックし，「Apps \& integrations」をクリックする．
+\item \label{item3}ページ右上の「Build your own」をクリックし，「Make a Custom Integration」をクリックする．
+\item 「Incoming WebHooks」をクリックする．
+\item 発言するチャンネルを選択し，「Add Incoming WebHooks integration」をクリックする．
+\item \label{item4}Webhook URLを取得する． 
+\end{enumerate}
+
+
+\subsubsection{SlackアカウントのOutgoing WebHooksの設定}
+\label{ss:out}
+Slackが提供しているOutgoing WebHooksの設定を行う．
+Outgoing WebHooksとは指定したチャンネルでの発言に指定した文字列が含まれているとき，指定したURLにその発言の情報をPOSTする機能である．
+\begin{enumerate}
+\item \ref{ss:in}項の(\ref{item3})まで同様の手順を踏む．
+\item 「Outgoing WebHooks」をクリックし，「Add Outgoing WebHooks integration」をクリックする．
+\item Outgoing WebHooksのページの各設定項目を設定する．設定する項目は表\ref{tab:table3}に示す．
+\item「Save Settings」をクリックする．
+
+\end{enumerate}
+
+\begin{table}[bt]
+  \begin{center}
+    \caption{Outgoing WebHooksの設定項目} 
+    \label{tab:table3}
+    \vspace{0.3cm}
+    \scalebox{1.0}{
+      \begin{tabular}{l|l}
+	    \hline 
+        \hline
+        項目& 内容\\
+	    \hline 
+        Channel& 発言を取得したいchannelを指定\\
+        Trigger Word(s)& @MoyaiBot\\
+        URL(s)& https://$<$myapp\_name$>$.herokuapp.com/slack\\
+        &myapp\_nameは\ref{ss:heroku}項(\ref{item2})にて指定するアプリケーション名\\
+        \hline
+      \end{tabular}
+    }
+  \end{center}
+\end{table}
+
+
+\subsubsection{SUNTORY BAR-NAVI WebAPIのAPIキー取得}
+\label{ss:bar}
+SUNTORYが提供しているbar検索WebAPIであるSUNTORY BAR-NAVI WebAPIのAPIキーの取得を行う．
+\begin{enumerate}
+\item 以下のURLからSUNTORY BAR-NAVI WebAPIのページにアクセスする．\\
+  \url{http://webapi.suntory.co.jp/barnavidocs/}
+
+\item ページ右側にある「メニュー」の「APIキー取得」をクリックする．
+\item 登録するメールアドレスを入力し，「利用規約に同意して登録」をクリックする．
+\item \label{item1}登録したメールアドレスに届いたメールにてAPIキーを取得．
+
+\end{enumerate}
+
+\subsubsection{Herokuのアカウント作成と設定}
+\label{ss:heroku}
+Webアプリケーションを開発するためのプラットフォームであるHerokuのアカウント作成と使用するための設定を行う．
+\begin{enumerate}
+\item 以下のURLからHerokuにアクセスする．\\
+  \url{https://www.heroku.com/}
+\item ページ右上の「Sign up」からアカウント作成画面へアクセスする．
+\item 必要項目を記入し，「Create Free Account」をクリックしアカウントを作成する．
+\item アカウント登録に使用したメールアドレスにHerokuからメールが送られてくるため，メールに記載されているURLにアクセスし．パスワードを設定する．
+\item 登録したアカウントでHerokuにログインし，「Getting Started with Heroku」からRubyを選択する．
+\item ページ下部の「I’m ready to start」をクリックし，「Download Heroku Toolbelt for…」からToolbeltをダウンロードする．
+\item 本プログラムが存在するディレクトリに移動する．ターミナルで以下のコマンドを実行し，Toolbeltがインストールされたことを確認する．
+\begin{verbatim}
+$ heroku version
+\end{verbatim}
+\item 以下のコマンドを実行し，Herokuにログインする．
+\begin{verbatim}
+$ heroku login
+\end{verbatim}
+\item \label{item2}Heroku上にアプリケーションを生成するために以下のコマンドを実行する．
+\begin{verbatim}
+heroku create <myapp_name>
+\end{verbatim}
+なお，myapp\_nameは作成するアプリケーションの名前である．小文字，数字，およびハイフンのみ使用できる．
+\item 以下のコマンドで生成したアプリケーションがremoteに登録されていることを確認する．
+\begin{verbatim}
+$ git remote -v
+heroku	https://git.heroku.com/<myapp_name>.git (fetch)
+heroku	https://git.heroku.com/<myapp_name>.git (push)
+\end{verbatim}
+\item 以下のコマンドを実行し，Herokuの環境変数に\ref{ss:in}項(\ref{item4})で取得したWebhook URLを設定する．
+\begin{verbatim}
+$ heroku config:set INCOMING_WEBHOOK_URL="https://*****"
+\end{verbatim}
+\item 以下のコマンドを実行し，Herokuの環境変数に\ref{ss:bar}項(\ref{item1})で取得したAPIキーを設定する．
+\begin{verbatim}
+$ heroku config:set BAR_API_KEY="*****"
+\end{verbatim}
+\end{enumerate}
+\subsubsection{Gemのインストール}
+本プログラム内で使用するGemをbundlerを用いてインストールする．
+Gemとは，Rubyで使用することができるライブラリである．
+\begin{enumerate}
+\item 以下のコマンドを実行し，Gemをvendor/bundle以下にインストールする．
+\begin{verbatim}
+$ bundle install --path vendor/bundle
+\end{verbatim}
+\end{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 使用方法
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{使用方法}
+\label{使用方法}
+本プログラムを実行するための手順を以下に示す．本プログラムはHerokuにデプロイすることにより実行することができる．
+\begin{enumerate}
+\item 以下のコマンドを実行する．
+\begin{verbatim}
+$ git push heroku master
+\end{verbatim}
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% エラー処理と保証しない動作
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{エラー処理と保証しない動作}
+\label{エラー処理と保証しない動作}
+\subsection{エラー処理}
+　本プログラムのエラー処理を以下に示す．
+\begin{enumerate}
+\item (機能2)のリクエストメッセージに存在しない都道府県名があった場合，Slackの発言を受信したチャンネルに対し，結果が得られなかったという内容の発言を行う．
+
+\end{enumerate}
+\subsection{保証しない動作}
+　本プログラムの保証しない動作を以下に示す．
+\begin{enumerate}
+\item SlackのOutgoing WebHooks以外からPOSTリクエストを受け取ったときの動作
+\item 表\ref{tab:table1}に示す動作環境以外でプログラムを実行
+\end{enumerate}
+
+\bibliographystyle{ipsjunsrt}
+\bibliography{mybibdata}
+
+
+
+\end{document}
